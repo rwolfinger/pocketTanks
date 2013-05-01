@@ -14,7 +14,9 @@ var ctx = canvas.getContext("2d");
 var width = 900;        //define all variables
 var height = 600;
 var terrainY = new Array();
-var weapons = [[8,0.035,"black"], [10, 0.035,"purple"], [12, 0.03,"red"], [5, 0.035, "navy"]];
+var weapons = [[8,0.035,"black", "Regular"], [10, 0.035,"purple","Medium"],
+               [12, 0.03,"red", "Large"], [5, 0.035, "navy","Triple Shot"],
+               [5, 0.04, "maroon", "FastBall"], [8, 0.03, "darkolivegreen","Double Hit"]];
 var tank1 = new tank(1);
 var tank2 = new tank(2);
 var currPlayer = 1;
@@ -101,7 +103,7 @@ function tank(start){
     this.geti=geti;
     this.changeWeapon=changeWeapon;
     this.getweapon=getweapon;
-    this.drawTank = drawTank;
+  //  this.drawTank = drawTank;
     this.getmoves=getmoves;
     this.moved = moved;
     this.toosteep = toosteep;
@@ -119,7 +121,7 @@ function tank(start){
     function setpx(x){this.px = x}
     function getpx(){return this.px}
     function setpy(y){this.py = y}
-    function getpy(){return this.py}
+    function getpy(){return terrainY[this.px]}
     function setnx(x){this.nx = x}
     function getnx(){return this.nx}
     function setny(y){this.ny = y}
@@ -132,7 +134,7 @@ function tank(start){
     function getscore(){return this.score}
     function seti(x){this.i = x}
     function geti(){return this.i}
-    function changeWeapon(){this.w = (this.w+1)%4;}
+    function changeWeapon(){this.w = (this.w+1)%6;}
     function getweapon(){return this.w;}
 }
 
@@ -283,10 +285,11 @@ function showRules(){
     ctx.fillText("The last tank standing wins!", 25, 400);
     ctx.fillText("Hit the SpaceBar to fire!", 530, 275);
     ctx.fillText("Left and right arrows will move the tank!", 530, 300);
-    ctx.fillText("Up and down arrows will move the barrel!", 530, 325);
-    ctx.fillText("Hit 'w' to change your weapon!", 530, 350);
-    ctx.fillText("Hit 'p' to pause the game!", 530, 375);
-    ctx.fillText("Hit 'r' to restart the game!", 530, 400);
+    ctx.fillText("Up and down arrows will move the barrel" , 530, 325);
+    ctx.fillText("clockwise and counterclockwise" , 545, 350);
+    ctx.fillText("Hit 'w' to change your weapon!", 530, 375);
+    ctx.fillText("Hit 'p' to pause the game!", 530, 400);
+    ctx.fillText("Hit 'r' to restart the game!", 530, 425);
 }
 
 function drawPausedScreen(){
@@ -307,8 +310,8 @@ function drawPausedScreen(){
 function createTerrain(){
     terrainY[0] = 500;
     for (var i = 1; i <= width; i++){
-        if(i<width/2){terrainY[i] = terrainY[i-1] - 0.5*Math.random() }
-       else{terrainY[i] = terrainY[i-1] + 0.5*Math.random()  }    
+        if(i<width/2){terrainY[i] = terrainY[i-1] - 0.75*Math.random() }
+       else{terrainY[i] = terrainY[i-1] + 0.75*Math.random()  }    
     }
 }
 
@@ -357,13 +360,14 @@ function drawTank(tank){
         }
     }
     tank.setphi(Math.acos(i/30));
+    changeDelta(tank);
     if(terrainY[tank.getpx()+i]>terrainY[tank.getpx()]){tank.setphi(2*Math.PI-tank.getphi());}
     ctx.lineTo(tank.getpx()+i,terrainY[tank.getpx()+i]);
     ctx.lineTo((tank.getpx()+tank.geti())-20*Math.sin(tank.getphi()),(terrainY[tank.getpx()+tank.geti()])-20*Math.cos(tank.getphi()));
     ctx.lineTo(tank.getpx()-20*Math.sin(tank.getphi()),terrainY[tank.getpx()]-20*Math.cos(tank.getphi()));
     ctx.closePath();
     ctx.fill();
-    
+   // delta = Math.abs(terrainY[hitPlayer.getpx()]-terrainY[hitPlayer.getpx()+hitPlayer.geti()]);
     var midx1= tank.getpx()+25*Math.cos(0.927293432+tank.getphi()); //0.927293432 is the angle in a 3:4:5 Triangle
     if(terrainY[tank.getpx()] >terrainY[tank.getpx()+tank.geti()]){
         var midy1=terrainY[tank.getpx()]-Math.abs(25*Math.sin((0.696706709+tank.getphi())%Math.PI));
@@ -393,6 +397,9 @@ function drawTank(tank){
 
 //this function changes the angle of the barrel
 function moveBarrel(currPlayer, dir){
+    if(currPlayer.getplayer()==2){
+        //dir= -dir;
+    }
     if((dir*0.01+currPlayer.gettheta())%(2*Math.PI)>=0 && (dir*0.01+currPlayer.gettheta())%(2*Math.PI)<= Math.PI){
         currPlayer.settheta((dir*0.1+currPlayer.gettheta())%(2*Math.PI));
     }
@@ -409,11 +416,11 @@ function moveTank(currPlayer, dir){
     if(currPlayer.getmoves() != 0){
         currPlayer.setpx(currPlayer.getpx()+dir);
         delta = Math.abs(terrainY[currPlayer.getpx()]-terrainY[currPlayer.getpx()+currPlayer.geti()]);
-        console.log(delta);
+      //  console.log(delta);
         if(delta>15){
             currPlayer.setpx(currPlayer.getpx()-dir);
             currPlayer.toosteep();
-            console.log("too steep!", delta);
+          //  console.log("too steep!", delta);
         }
         else{
             currPlayer.notsteep();
@@ -440,41 +447,56 @@ function fireAway(){
     var clear2 = false;
     var clear3 = false;
     var int1 = setInterval(function(){projectile1()}, 10);
-    if(weapons[weapon][2]=="black"){    //if this weapon breaks off into 3
+    if(weapons[weapon][3]=="Triple Shot"){    //if this weapon breaks off into 3
         var int2 = setInterval(function(){projectile2()}, 10);
         var int3 = setInterval(function(){projectile3()}, 10);
     }
     function projectile1(){
         if(gamePaused== false){
             t+=200;
-            if(y<terrainY[Math.round(x)] && x<=width && x>=0){
+            redrawAll();
+            if(y<terrainY[Math.round(x)] && x<=width && x>=0&&clear1==false){
                 x = currPlayer.getnx() + (weapons[weapon][1])*Math.cos(currPlayer.angle())*t;
                 y = currPlayer.getny() - (weapons[weapon][1])*Math.sin(currPlayer.angle())*t + (0.5*(0.0000015))*(t*t);
-                redrawAll();
                 circle(ctx, x, y,weapons[weapon][0],weapons[weapon][2]);
+                clear1 = checkDirectHit(x,y,weapons[weapon][0],otherPlayer);
             }
             else if((y>terrainY[Math.round(x)] || x>width || x<0) && clear1 ==false){
-                blowUp(x,y,weapons[weapon][0]*2,otherPlayer);
+                if(x2<width || x2>0){
+                    if(weapons[weapon][3] == "Double Hit"){
+                        blowUp(x+5,y,weapons[weapon][0]*4,otherPlayer);
+                    }
+                    else{
+                        blowUp(x,y,weapons[weapon][0]*2,otherPlayer);
+                    }
+                    
+                }
                 clear1 = true;
             }
-        if(weapons[weapon][2]=="navy"){
-            if(y1<terrainY[Math.round(x1)] && x1<=width && x1>=0){
+        if(weapons[weapon][3]=="Triple Shot"){
+            if(y1<terrainY[Math.round(x1)] && x1<=width && x1>=0&&clear2==false){
                 x1 = currPlayer.getnx() + ((currPlayer.getpower()/100)*weapons[weapon][1])*Math.cos(currPlayer.angle()-0.09817)*t;
                 y1 = currPlayer.getny() - (weapons[weapon][1])*Math.sin(currPlayer.angle()-0.09817)*t + (0.5*(0.0000015))*(t*t);
+                clear2 = checkDirectHit(x1,y1,weapons[weapon][0],otherPlayer);
                 circle(ctx, x1, y1,weapons[weapon][0],weapons[weapon][2]);
             }
             else if((y1>terrainY[Math.round(x1)] || x1>width || x1<0) && clear2 == false){
-                blowUp(x1,y1,weapons[weapon][0]*2,otherPlayer);
+                if(x1<width || x1>0){
+                    blowUp(x1,y1,weapons[weapon][0]*2,otherPlayer);
+                }
                 clear2 = true;
             }
             
-            if(y2<terrainY[Math.round(x2)] && x2<=width && x2>=0){
+            if(y2<terrainY[Math.round(x2)] && x2<=width && x2>=0&&clear3==false){
                 x2 = currPlayer.getnx() + (weapons[weapon][1])*Math.cos(currPlayer.angle()+0.09817)*t;
                 y2 = currPlayer.getny() - (weapons[weapon][1])*Math.sin(currPlayer.angle()+0.09817)*t + (0.5*(0.0000015))*(t*t);
+                clear3 = checkDirectHit(x2,y2,weapons[weapon][0],otherPlayer);
                 circle(ctx, x2, y2,weapons[weapon][0],weapons[weapon][2]);
             }
             else if((y2>terrainY[Math.round(x2)] || x2>width || x2<0) && clear3 ==false){
-                blowUp(x2,y2,weapons[weapon][0]*2,otherPlayer);
+                if(x2<width || x2>0){
+                    blowUp(x2,y2,weapons[weapon][0]*2, otherPlayer);
+                }
                 clear3 = true;
             }   
         }
@@ -506,43 +528,49 @@ function blowUp(x,y,radius,player){
     for(i=x-radius;i<x+radius; i++){
         terrainY[i]=Math.max(y+Math.sqrt((radius*radius)-(x-i)*(x-i)),terrainY[i]);
     }
-    
-    checkHit(x,y,radius,player);
-    changeDelta(player);
+    checkIndirectHit(x,y,radius,player);
     console.log("done with explosion");
-    redrawAll();
 }
 
 function changeDelta(hitPlayer){
-    delta = Math.abs(terrainY[hitPlayer.getpx()]-terrainY[hitPlayer.getpx()+hitPlayer.geti()]);
-    console.log(delta);
+    delta = Math.abs(terrainY[hitPlayer.getpx()]-terrainY[hitPlayer.getpx()+hitPlayer.geti()/2]);
+   // console.log(delta);
     while(delta>15){
-        console.log("detla",delta);
-        hitPlayer.setpx(hitPlayer.getpx()-1);
+    //    console.log("detla",delta);
+        if(hitPlayer.getplayer() == 2){
+            hitPlayer.setpx(hitPlayer.getpx()+5);
+        }
+        else{
+            hitPlayer.setpx(hitPlayer.getpx()-5);
+        }
         delta = Math.abs(terrainY[hitPlayer.getpx()]-terrainY[hitPlayer.getpx()+hitPlayer.geti()]);
     }
     console.log("final delta", delta);
 }
 
 //this function checks if the weapon hits the tank
-function checkHit(cx,cy,radius,hitPlayer){
-    console.log("checking hit");
+function checkDirectHit(cx,cy,radius,hitPlayer){
+    console.log("checking hit",cx,cy,hitPlayer.getpx(), hitPlayer.getpy(),terrainY[hitPlayer.getpx()]);
     //check if weapon hits tank directly
-    if((cx>=hitPlayer.getpx() && cx<=hitPlayer.getpx()+30 )||(cy>=hitPlayer.getpy()-20 && cy<=hitPlayer.getpy())){
+    changeDelta(hitPlayer);
+    if((cx>=hitPlayer.getpx() && cx<=hitPlayer.getpx()+30 )&&(cy>=terrainY[hitPlayer.getpx()]-20 && cy<=terrainY[hitPlayer.getpx()])){
         hitPlayer.setscore(hitPlayer.getscore()-25);
         checkEndGame();
         console.log("Direct Hit");
+        return true;
     }
+    return false;
 
-    //else, check if weapon lands within certain radius of the tank
-    else if((cx>=hitPlayer.getpx()-radius && cx<=hitPlayer.getpx()+30+radius )||
-        (cy>=hitPlayer.getpy()-20-radius && cy<=hitPlayer.getpx()+radius)){
+
+}
+function checkIndirectHit(cx,cy,radius,hitPlayer){
+        //else, check if weapon lands within certain radius of the tank
+    if((cx>=hitPlayer.getpx()-radius && cx<=hitPlayer.getpx()+30+radius )&&
+        (cy>=terrainY[hitPlayer.getpx()]-20-radius && cy<=terrainY[hitPlayer.getpx()]+radius)){
         hitPlayer.setscore(hitPlayer.getscore()-10);
         checkEndGame();
         console.log("Indirect Hit");
     }
-
-
 }
 
 
@@ -587,7 +615,7 @@ function drawGameScreen(currPlayer){
     ctx.fillText("Pocket Tanks", 355,40);
     ctx.font="20px Georgia";
     ctx.fillText("It is Player "+ currPlayer.getplayer().toString() + "'s turn!", 360, 75);
-    ctx.fillText("Your current weapon is: "+ weapons[currPlayer.getweapon()][2].toString() , 320, 100);
+    ctx.fillText("Your current weapon is: "+ weapons[currPlayer.getweapon()][3].toString() , 320, 100);
     if(currPlayer.getplayer() == 1){
         ctx.fillText("Angle: " + ((currPlayer.gettheta()*360/(2*Math.PI))-(currPlayer.gettheta()*360/(2*Math.PI))%1).toString(), 290, 125);
     }
@@ -635,6 +663,7 @@ function redrawAll(){
     drawGameScreen(currPlayer);
     drawHealthBar(tank1,tank2);
     drawButtons();
+    checkEndGame();
 }
 
 function circle(ctx, cx, cy, radius, color) {      //this function has been taken from 15-237 course notes, taught by Kosbie
