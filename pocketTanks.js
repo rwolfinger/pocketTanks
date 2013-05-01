@@ -20,9 +20,32 @@ var tank2 = new tank(2);
 var currPlayer = 1;
 var buttons = new Array();
 var gamePaused = new Boolean();
+var gamePlay = false;
+var startButton;
+var gameNotStarted = true;
 gamePaused = false;
-runGame();
+createTerrain();
+startGame();
 
+
+function startGame(){
+    console.log("start!");
+    var grd=ctx.createRadialGradient(450,100,100,450,300,500);
+    grd.addColorStop(0,"lightskyblue");
+    grd.addColorStop(0.5,"steelblue");
+ //   grd.addColorStop(0.75,"limegreen");
+    grd.addColorStop(1,"purple");
+    
+    // Fill with gradient
+    ctx.fillStyle=grd;
+    ctx.fillRect(0,0,width,height);
+    ctx.fillStyle= "black";
+    ctx.font="80px Georgia";
+    ctx.fillText("Pocket Tanks", 210,100);
+    startButton = new button(350,300,200,150, "Start", "");
+    startButton.drawButton();
+    
+}
 
 //classes: tank and button
 function tank(start){
@@ -110,9 +133,16 @@ function button(x, y, w, h, text1, text2){
         my_gradient1.addColorStop(1,"lightskyblue");
         ctx.fillStyle = my_gradient1;
         ctx.fillRect(this.x,this.y,this.w,this.h);
+        ctx.strokeStyle = "dimgray";
+        ctx.strokeRect(this.x,this.y,this.w,this.h);
         ctx.fillStyle = "steelblue";
         ctx.font="15px Georgia";
-        if(this.text1 == "Pause"){
+        if(this.text1 == "Start"){
+            ctx.font = "30px Georgia";
+            ctx.fillText(this.text1, this.x+this.w/4+15,this.y+this.h/2);
+
+        }
+        else if(this.text1 == "Pause"){
             ctx.fillText(this.text1, this.x+this.w/4+5,this.y+this.h-15);
         }
         else if(this.text1 == "Restart"){
@@ -130,10 +160,10 @@ function button(x, y, w, h, text1, text2){
     function checkClicked(event,i){
         if((event.x>=this.x && event.x<=this.x+this.w) &&(event.y>=this.y && event.y<=this.y+this.h)){
             this.clicked(i);
-            
         }
     }
     function clicked(i){
+        console.log(i);
         if(i == 0){pauseGame()}
         else if(i == 1){runGame()}
         else if(i == 2){currPlayer.changeWeapon()}
@@ -143,18 +173,21 @@ function button(x, y, w, h, text1, text2){
 
 //starts a new game
 function runGame(){
+    gameNotStarted = false;
+    createTerrain();
+    drawTerrain();
     tank1 = new tank(1);
     tank2 = new tank(2);
     currPlayer = tank1;
     otherPlayer = tank2;
-    createTerrain();
     createTanks(currPlayer,otherPlayer);
     drawTank(currPlayer);
     drawTank(otherPlayer);
     createButtons();
-    redrawAll();
+    
     gamePaused = false;
-
+    gamePlay = true;
+    redrawAll();
     
 }
 
@@ -162,46 +195,61 @@ function onMouseDown(event) {
     for(i = 0; i <buttons.length; i++){
         buttons[i].checkClicked(event, i);
     }
+    if(gameNotStarted==true){
+        startButton.checkClicked(event, 1);
+    }
+    console.log(event);
     redrawAll();
     
 }
 //this function changes info about the tank through pressed keys
 function onKeyPress(event) {
-    ctx.restore();
-    ctx.clearRect(0, 0, width, height);
-    drawTerrain();
-    if (event.keyCode == 38 && !gamePaused){
-        moveBarrel(currPlayer,1);  //up should change nozzel
-    }
-    else if(event.keyCode == 39 && !gamePaused){
-        moveTank(currPlayer, 5);    //move tanks to the right
-    }
-    else if(event.keyCode == 40 && !gamePaused){
-        moveBarrel(currPlayer,-1);       //down should move nozzel
-    }
-    else if(event.keyCode ==37 && !gamePaused){
-        moveTank(currPlayer, -5);    //move tanks to the left
-    }
-    else if(event.keyCode == 32 && !gamePaused){   //spacebar shoots!!
-      //  currPlayer.weaponFired();
-        fireAway(currPlayer);
-    }
-    else if(event.keyCode == 80){   //'p' Pauses the game
-        pauseGame();
-    }
-    else if(event.keyCode == 82){   //'r' restarts the game
-        runGame();
-    }
-    else if(event.keyCode == 87){   //'w' changes the weapons
-        currPlayer.changeWeapon();
+    if(gameNotStarted == false){
+        ctx.restore();
+        ctx.clearRect(0, 0, width, height);
+        drawTerrain();
+        if (event.keyCode == 38 && !gamePaused && gamePlay){
+            moveBarrel(currPlayer,1);  //up should change nozzel
+        }
+        else if(event.keyCode == 39 && !gamePaused && gamePlay){
+            moveTank(currPlayer, 5);    //move tanks to the right
+        }
+        else if(event.keyCode == 40 && !gamePaused && gamePlay){
+            moveBarrel(currPlayer,-1);       //down should move nozzel
+        }
+        else if(event.keyCode ==37 && !gamePaused && gamePlay){
+            moveTank(currPlayer, -5);    //move tanks to the left
+        }
+        else if(event.keyCode == 32 && !gamePaused && gamePlay){   //spacebar shoots!!
+          //  currPlayer.weaponFired();
+          console.log("nooo");
+            fireAway(currPlayer);
+        }
+        else if(event.keyCode == 80){   //'p' Pauses the game
+            pauseGame();
+        }
+        else if(event.keyCode == 82){   //'r' restarts the game
+            runGame();
+        }
+        else if(event.keyCode == 87 && gamePlay){   //'w' changes the weapons
+            currPlayer.changeWeapon();
+        }
+    
+        redrawAll();
+            
     }
 
-    redrawAll();
 }
 
 function pauseGame(){
-    if(gamePaused==false){gamePaused = true}
-    else{gamePaused = false}
+    if(gamePaused==false){
+        gamePaused = true;
+        gamePlay = false;
+        }
+    else{
+        gamePaused = false;
+        gamePlay = true;
+        }
 }
 
 function showRules(){
@@ -241,7 +289,7 @@ function drawPausedScreen(){
 //this function creates a randomized terrain
 function createTerrain(){
     terrainY[0] = 500;
-    for (var i = 1; i < width; i++){
+    for (var i = 1; i <= width; i++){
         if(i<width/2){terrainY[i] = terrainY[i-1] - 0.5*Math.random() }
        else{terrainY[i] = terrainY[i-1] + 0.5*Math.random()  }    
     }
@@ -259,7 +307,8 @@ function drawTerrain(){
     my_gradient.addColorStop(0.5,"darkgreen");
     my_gradient.addColorStop(1,"black");
     ctx.fillStyle=my_gradient;
-    for (var i = 1; i < width; i++){
+    for (var i = 0; i <= width; i++){
+       // console.log(i,terrainY[i])
         my_gradient=ctx.createLinearGradient(0,terrainY[i],0,900);
         my_gradient.addColorStop(0,"limegreen");
         my_gradient.addColorStop(0.15,"green");
@@ -295,7 +344,7 @@ function drawTank(tank){
     }
     tank.setphi(Math.acos(i/30));
     if(terrainY[tank.getpx()+i]>terrainY[tank.getpx()]){tank.setphi(2*Math.PI-tank.getphi());}
-    console.log("phi", tank.getphi());
+    console.log(tank,"phi", tank.getphi());
     ctx.lineTo(tank.getpx()+i,terrainY[tank.getpx()+i]);
     ctx.lineTo((tank.getpx()+tank.geti())-20*Math.sin(tank.getphi()),(terrainY[tank.getpx()+tank.geti()])-20*Math.cos(tank.getphi()));
     ctx.lineTo(tank.getpx()-20*Math.sin(tank.getphi()),terrainY[tank.getpx()]-20*Math.cos(tank.getphi()));
@@ -364,6 +413,7 @@ function moveTank(currPlayer, dir){
 
 //this function fires the weapon
 function fireAway(){
+    gamePlay = false;
     console.log("fire!!!");
     weapon = currPlayer.getweapon();
     var t = 0;
@@ -374,9 +424,10 @@ function fireAway(){
         y = currPlayer.getny() - (weapons[weapon][1])*Math.sin(currPlayer.angle())*t + (0.5*(0.0000015))*(t*t);
         t+=200;
         if(y<terrainY[Math.round(x)] && x<=width && x>=0){
+            console.log(t);
             redrawAll();
             circle(ctx, x, y,weapons[weapon][0],weapons[weapon][2]);
-            
+            checkHit(x,y,weapons[weapon][0],otherPlayer);   
         }
         else if(y>terrainY[Math.round(x)] || x>width || x<0){
             if(currPlayer.getplayer()==1){
@@ -389,6 +440,7 @@ function fireAway(){
             }
             blowUp(x,y,weapons[weapon][0]*2,currPlayer);
             clearInterval(int1);
+            gamePlay=true;
             redrawAll();
         }
     }  
@@ -401,7 +453,7 @@ function blowUp(x,y,radius,player){
     for(i=x-radius;i<x+radius; i++){
         terrainY[i]=Math.max(y+Math.sqrt((radius*radius)-(x-i)*(x-i)),terrainY[i]);
     }
-    checkHit(x,y,radius,player);
+    
     console.log("done with explosion");
     redrawAll();
 }
@@ -471,7 +523,8 @@ function drawGameScreen(currPlayer){
     ctx.font="30px Georgia";
     ctx.fillText("Pocket Tanks", 355,40);
     ctx.font="20px Georgia";
-    ctx.fillText("It is Player "+ currPlayer.player.toString() + "'s turn!", 360, 75);
+    console.log(currPlayer);
+    ctx.fillText("It is Player "+ currPlayer.getplayer().toString() + "'s turn!", 360, 75);
     ctx.fillText("Your current weapon is: "+ weapons[currPlayer.getweapon()][2].toString() , 320, 100);
     ctx.fillText("Angle: " + ((currPlayer.gettheta()*360/(2*Math.PI))-(currPlayer.gettheta()*360/(2*Math.PI))%1).toString(), 290, 125);
     ctx.fillText("Power: " + currPlayer.getscore().toString(), 400, 125);
@@ -500,7 +553,6 @@ function redrawAll(){
     ctx.restore();
     ctx.clearRect(0, 0, width, height);
     drawTerrain();
-    drawButtons();
     drawTank(tank1);
     drawTank(tank2);
     if(gamePaused == true){drawPausedScreen();}
