@@ -13,16 +13,8 @@ var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
 var width = 900;        //define all variables
 var height = 600;
-/*var img = document.getElementById("Surf");
-var unpauseButton = document.getElementById("unpause");
-var restartButton = document.getElementById("restart");
-var changeWeaponButton = document.getElementById("changeWeapon");
-var info = document.getElementById("info");
-var titleImage = document.getElementById("title");
-var pause = document.getElementById("pause");
-*/
 var terrainY = new Array();
-var weapons = [[5,0.035,"black"], [10, 0.035,"purple"], [15, 0.03,"red"]];
+var weapons = [[8,0.035,"black"], [10, 0.035,"purple"], [12, 0.03,"red"]];
 var tank1 = new tank(1);
 var tank2 = new tank(2);
 var currPlayer = 1;
@@ -37,6 +29,8 @@ function tank(start){
     this.w = 0;
     this.score = 100;
     this.player = start;
+    this.moves = 100;
+    this.steepb = false;
     if(start ==1){
         this.px = 40;
         this.theta = Math.PI/4;
@@ -45,6 +39,7 @@ function tank(start){
         this.px = 820;
         this.theta = 3*Math.PI/4;
         }
+    this.angle = angle;
     this.getplayer=getplayer;
     this.setpx=setpx;
     this.getpx=getpx;
@@ -66,7 +61,16 @@ function tank(start){
     this.getweapon=getweapon;
     this.drawTank = drawTank;
     this.getmoves=getmoves;
-    function getmoves(){return 20}
+    this.moved = moved;
+    this.toosteep = toosteep;
+    this.notsteep = notsteep;
+    this.steep = steep;
+    function toosteep(){this.steepb = true}
+    function notsteep(){this.steepb = false}
+    function steep(){return this.steepb}
+    function angle(){return this.theta+this.phi}
+    function getmoves(){return this.moves}
+    function moved(){this.moves = this.moves-1}
     function getplayer(){return this.player}
     function setpx(x){this.px = x}
     function getpx(){return this.px}
@@ -167,13 +171,13 @@ function onKeyPress(event) {
     ctx.clearRect(0, 0, width, height);
     drawTerrain();
     if (event.keyCode == 38 && !gamePaused){
-        moveBarrel(currPlayer,-1);  //up should change nozzel
+        moveBarrel(currPlayer,1);  //up should change nozzel
     }
     else if(event.keyCode == 39 && !gamePaused){
         moveTank(currPlayer, 5);    //move tanks to the right
     }
     else if(event.keyCode == 40 && !gamePaused){
-        moveBarrel(currPlayer,1);       //down should move nozzel
+        moveBarrel(currPlayer,-1);       //down should move nozzel
     }
     else if(event.keyCode ==37 && !gamePaused){
         moveTank(currPlayer, -5);    //move tanks to the left
@@ -279,57 +283,82 @@ function drawTank(tank){
     //body of player
     ctx.beginPath();
     ctx.moveTo(tank.getpx(),terrainY[tank.getpx()]);
+    tank.seti(30);
     for(i=0; i<=30; i++){
-        if(Math.sqrt((i*i)+(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])*(terrainY[tank.getpx()+i]-terrainY[tank.getpx()]))<=30.5 &&
-           Math.sqrt((i*i)+(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])*(terrainY[tank.getpx()+i]-terrainY[tank.getpx()]))>=29.5){
-            ctx.lineTo(tank.getpx()+i,terrainY[tank.getpx()+i]);
-            tank.setphi(Math.acos(i/30));
-            if(terrainY[tank.getpx()+i]>terrainY[tank.getpx()]){tank.setphi(2*Math.PI-tank.getphi());}
+        if(Math.sqrt((i*i)+(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])*(terrainY[tank.getpx()+i]-terrainY[tank.getpx()]))<=31 &&
+           Math.sqrt((i*i)+(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])*(terrainY[tank.getpx()+i]-terrainY[tank.getpx()]))>=29){
+            console.log("i",Math.sqrt((i*i)+(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])*(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])));
             tank.seti(i);
             break;
         }
+        console.log("i",Math.sqrt((i*i)+(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])*(terrainY[tank.getpx()+i]-terrainY[tank.getpx()])));
     }
+    tank.setphi(Math.acos(i/30));
+    if(terrainY[tank.getpx()+i]>terrainY[tank.getpx()]){tank.setphi(2*Math.PI-tank.getphi());}
+    console.log("phi", tank.getphi());
+    ctx.lineTo(tank.getpx()+i,terrainY[tank.getpx()+i]);
     ctx.lineTo((tank.getpx()+tank.geti())-20*Math.sin(tank.getphi()),(terrainY[tank.getpx()+tank.geti()])-20*Math.cos(tank.getphi()));
-    ctx.lineTo(tank.getpx()-20*Math.sin(tank.getphi()),terrainY[tank.getpx()]-20*Math.cos(tank.getphi()))
+    ctx.lineTo(tank.getpx()-20*Math.sin(tank.getphi()),terrainY[tank.getpx()]-20*Math.cos(tank.getphi()));
     ctx.closePath();
     ctx.fill();
     
-    var midx1= tank.getpx()+25*Math.cos(0.927293432+tank.getphi()) //0.927293432 is the angle in a 3:4:5 Triangle
-    var midy1=((terrainY[tank.getpx()]+terrainY[tank.getpx()+tank.geti()])/2)-25*Math.sin(0.927293432+tank.getphi())//-20*Math.cos(Math.PI-phi1);
-    
+    var midx1= tank.getpx()+25*Math.cos(0.927293432+tank.getphi()); //0.927293432 is the angle in a 3:4:5 Triangle
+    if(terrainY[tank.getpx()] >terrainY[tank.getpx()+tank.geti()]){
+        var midy1=terrainY[tank.getpx()]-Math.abs(25*Math.sin((0.696706709+tank.getphi())%Math.PI));
+    }
+    else{
+        var midy1=terrainY[tank.getpx()+tank.geti()]-Math.abs(25*Math.cos(Math.abs(0.927293432+tank.getphi())));
+    }
     ctx.beginPath();
     ctx.arc(midx1,midy1, 8, 0, 2*Math.PI, true);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-
     //barrel 
-
     ctx.beginPath();
-    ctx.moveTo(midx1, midy1);
-    ctx.lineTo(midx1+6*Math.sin(tank.gettheta()),midy1+6*Math.cos(tank.gettheta()));
-    ctx.lineTo((midx1+6*Math.sin(tank.gettheta()))+25*Math.cos(tank.gettheta()),(midy1+6*Math.cos(tank.gettheta()))-25*Math.sin(tank.gettheta()));
-    ctx.lineTo(midx1+25*Math.cos(tank.gettheta()),midy1-25*Math.sin(tank.gettheta()));
+    mx = midx1-3*Math.sin(tank.gettheta());
+    my = midy1-3*Math.cos(tank.gettheta());
+    ctx.moveTo(mx, my);
+    ctx.lineTo(mx+6*Math.sin(tank.angle()),my+6*Math.cos(tank.angle()));
+    ctx.lineTo((mx+6*Math.sin(tank.angle()))+25*Math.cos(tank.angle()),(my+6*Math.cos(tank.angle()))-25*Math.sin(tank.angle()));
+    ctx.lineTo(mx+25*Math.cos(tank.angle()),my-25*Math.sin(tank.angle()));
     ctx.closePath();
     ctx.fill();
-    tank.setnx(midx1+25*Math.cos(tank.gettheta()));
-    tank.setny(midy1-25*Math.sin(tank.gettheta()));
+    tank.setnx(mx+25*Math.cos(tank.angle()));
+    tank.setny(my-25*Math.sin(tank.angle()));
     
 }
 
 //this function changes the angle of the barrel
 function moveBarrel(currPlayer, dir){
-    currPlayer.settheta((dir*0.1+currPlayer.gettheta())%(2*Math.PI));
+    if((dir*0.01+currPlayer.gettheta())%(2*Math.PI)>=0 && (dir*0.01+currPlayer.gettheta())%(2*Math.PI)<= Math.PI){
+        currPlayer.settheta((dir*0.1+currPlayer.gettheta())%(2*Math.PI));
+    }
+    else if((dir*0.01+currPlayer.gettheta())%(2*Math.PI)<0){
+        currPlayer.settheta(0);
+    }
+        else if((dir*0.01+currPlayer.gettheta())%(2*Math.PI)>Math.PI){
+        currPlayer.settheta(Math.PI);
+    }
 }
 
 //this function moves the tank left and right
 function moveTank(currPlayer, dir){
-    currPlayer.setpx(currPlayer.getpx()+dir);
-    delta = (terrainY[currPlayer.getpx()]-terrainY[currPlayer.getpx()+currPlayer.geti()]);
-    if(delta>20){
-        this.px-=dir;
-        console.log("too steep!");
+    if(currPlayer.getmoves() != 0){
+        currPlayer.setpx(currPlayer.getpx()+dir);
+        delta = Math.abs(terrainY[currPlayer.getpx()]-terrainY[currPlayer.getpx()+currPlayer.geti()]);
+        console.log(delta);
+        if(delta>15){
+            currPlayer.setpx(currPlayer.getpx()-dir);
+            currPlayer.toosteep();
+            console.log("too steep!", delta);
+        }
+        else{
+            currPlayer.notsteep();
+            currPlayer.moved();
+        }
     }
+
 
 }
 
@@ -341,8 +370,8 @@ function fireAway(){
     var x,y;
     var int1 = setInterval(function(){projectile1()}, 10);
     function projectile1(){
-        x = currPlayer.getnx() + (weapons[weapon][1])*Math.cos(currPlayer.gettheta())*t;
-        y = currPlayer.getny() - (weapons[weapon][1])*Math.sin(currPlayer.gettheta())*t + (0.5*(0.0000015))*(t*t);
+        x = currPlayer.getnx() + (weapons[weapon][1])*Math.cos(currPlayer.angle())*t;
+        y = currPlayer.getny() - (weapons[weapon][1])*Math.sin(currPlayer.angle())*t + (0.5*(0.0000015))*(t*t);
         t+=200;
         if(y<terrainY[Math.round(x)] && x<=width && x>=0){
             redrawAll();
@@ -358,7 +387,7 @@ function fireAway(){
                 currPlayer = tank1;
                 otherPlayer = tank2; 
             }
-            blowUp(x,y,weapons[weapon][0]*2,otherPlayer);
+            blowUp(x,y,weapons[weapon][0]*2,currPlayer);
             clearInterval(int1);
             redrawAll();
         }
@@ -386,11 +415,19 @@ function checkHit(cx,cy,radius,hitPlayer){
         console.log("Direct Hit");
     }
     //else, check if weapon lands within certain radius of the tank
-    else if((cx>=hitPlayer.getpx()-radius && cx<=hitPlayer.getpx()+30+radius )||(cy>=hitPlayer.getpy()-20-radius && cy<=hitPlayer.getpx()+radius)){
+    else if((cx>=hitPlayer.getpx()-radius && cx<=hitPlayer.getpx()+30+radius )||
+            (cy>=hitPlayer.getpy()-20-radius && cy<=hitPlayer.getpx()+radius)){
         hitPlayer.setscore(hitPlayer.getscore()-10);
         console.log("Indirect Hit");
     }
-    
+    delta = Math.abs(terrainY[hitPlayer.getpx()]-terrainY[hitPlayer.getpx()+hitPlayer.geti()]);
+    console.log(delta);
+    while(delta>15){
+        console.log(delta);
+        hitPlayer.setpx(hitPlayer.getpx()-1);
+        delta = (terrainY[hitPlayer.getpx()]-terrainY[hitPlayer.getpx()+hitPlayer.geti()]);
+    }
+
 }
 
 
@@ -406,7 +443,7 @@ function drawHealthBar(tank1,tank2){
     my_gradient.addColorStop(0,"firebrick");
     my_gradient.addColorStop(0.75,"gold");
     my_gradient.addColorStop(1,"limegreen");
-    ctx.fillStyle = "gray"
+    ctx.fillStyle = "black"
     ctx.fillRect(50,85,150,50);
     ctx.fillStyle=my_gradient;
     ctx.strokeStyle = "black";
@@ -436,9 +473,18 @@ function drawGameScreen(currPlayer){
     ctx.font="20px Georgia";
     ctx.fillText("It is Player "+ currPlayer.player.toString() + "'s turn!", 360, 75);
     ctx.fillText("Your current weapon is: "+ weapons[currPlayer.getweapon()][2].toString() , 320, 100);
-    ctx.fillText("Angle: " + ((currPlayer.gettheta()*360/(2*Math.PI))-(currPlayer.gettheta()*360/(2*Math.PI))%1).toString(), 280, 125);
-    ctx.fillText("Power: " + currPlayer.getscore().toString(), 390, 125);
-    ctx.fillText("Moves: " + currPlayer.getmoves().toString(), 520, 125);
+    ctx.fillText("Angle: " + ((currPlayer.gettheta()*360/(2*Math.PI))-(currPlayer.gettheta()*360/(2*Math.PI))%1).toString(), 290, 125);
+    ctx.fillText("Power: " + currPlayer.getscore().toString(), 400, 125);
+    ctx.fillText("Moves: " + currPlayer.getmoves().toString(), 530, 125);
+    if(currPlayer.getmoves() == 0 ){
+        currPlayer.notsteep();
+        ctx.font = "25px Georgia"
+        ctx.fillText("No More Moves!", 360, 155);
+    }
+    if(currPlayer.steep() == true){
+            ctx.font = "25px Georgia";
+            ctx.fillText("That is too steep!", 360, 155);
+    }
 }
 
 function createButtons(){
